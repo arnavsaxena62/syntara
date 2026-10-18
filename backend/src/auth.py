@@ -1,5 +1,4 @@
-import secrets
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBasic, OAuth2PasswordBearer
 from datetime import datetime, timedelta, timezone
 from jose import jwt, JWTError

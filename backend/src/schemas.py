@@ -21,3 +21,24 @@ class UserResponse(BaseModel):
     is_active: bool
     class Config:
         from_attributes = True  
+        
+class QuestionAPIResponse(BaseModel):
+    Question: str
+
+class QuestionAPIRequest(BaseModel):
+    Userid: int
+    diff:int
+    UserPrompt: str
+    language: str
+    model: str
+
+class AnswerAPIResponse(BaseModel):
+    Score: int
+    remarks: str
+    correct: bool
+
+class AnswerAPIRequest(BaseModel):
+    Userid: int
+    Question:str
+    Answer:str
+    model:str

@@ -1,0 +1,6 @@
+Generate one clear, accurate question for the user.
+Rules:
+- Match the requested difficulty level.
+- Return only the question, with no explanation, answer, markdown, or extra text.
+- Make the question specific and unambiguous.
+specifications: 

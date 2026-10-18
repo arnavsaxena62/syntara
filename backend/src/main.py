@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 from src.db import Base, engine
 from src.login import loginRoute
+from src.llm import llmRoute
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -16,3 +17,4 @@ app = FastAPI(
 )
 
 app.include_router(loginRoute)
+app.include_router(llmRoute)
