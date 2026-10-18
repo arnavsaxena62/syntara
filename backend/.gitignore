@@ -1,0 +1,10 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Local databases
+*.db
+
+# Secrets
+.env
+EOF
