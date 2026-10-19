@@ -5,6 +5,8 @@ from typing import cast
 from litellm import acompletion, ModelResponse
 from pydantic import BaseModel
 from pathlib import Path
+from litellm import _turn_on_debug
+from string import Template
 
 from src.schemas import QuestionAPIResponse, QuestionAPIRequest, AnswerAPIResponse, AnswerAPIRequest
 from src.auth import verifyToken
@@ -12,12 +14,39 @@ from src.auth import verifyToken
 llmRoute = APIRouter()
 
 T = TypeVar("T", bound=BaseModel)
+JSON_SYSTEM_PROMPT = """
+You are a JSON-only API.
+You must return exactly one valid JSON object and nothing else.
+Required format:
+{"Question":"one generated question"}
+Rules:
+- The JSON object must contain exactly one key: "Question".
+- "Question" must be a string.
+- Do not output markdown.
+- Do not output any preamble or postamble
+- Do not use code fences.
+- Do not output XML tags such as <question>.
+- Do not include an introduction, explanation, solution, hint, schema, example, or extra keys.
+- Do not write any text before or after the JSON object.
+Any output that is not valid JSON is invalid.
+""".strip()
 
 async def callLLM(prompt: str, model: str, schema: type[T]) -> T:
+    _turn_on_debug()
     response = cast(ModelResponse, await acompletion(
-        model=model,
-        messages=[{"role": "user", "content": prompt}],
-        response_format=schema,
+        model=f"openai/{model}",
+        api_key="",
+        messages=[
+                {
+                    "role": "system",
+                    "content": JSON_SYSTEM_PROMPT,
+                },
+                {
+                    "role": "user",
+                    "content": prompt,
+                },
+            ],
+        response_format={"type": "json_object"},
         stream=False,
     ))
 
@@ -26,7 +55,10 @@ async def callLLM(prompt: str, model: str, schema: type[T]) -> T:
     if content is None:
         raise ValueError("LLM returned no content")
 
+    print(content)
+
     return schema.model_validate_json(content)
+
 
 @llmRoute.post("/newquestion", response_model=QuestionAPIResponse)
 async def newquestion(
@@ -34,20 +66,20 @@ async def newquestion(
     current_user: int = Depends(verifyToken),
 ) -> QuestionAPIResponse:
     try:
-        QuestionPromptfile = Path(__file__).parent / "prompts" / "newquestion.txt"
-        prompt = QuestionPromptfile.read_text(encoding="utf-8")
-
-        prompt += f"""
-                    specifications:
-                    \tdifficulty: {question_specifications.diff}
-                    \tuser specifications: {question_specifications.UserPrompt}
-                    \tlanguage: {question_specifications.language}
-                    """
-
+        question_prompt_file = (
+            Path(__file__).parent / "prompts" / "newquestion.txt"
+        )
+        template_text = question_prompt_file.read_text(encoding="utf-8")
+        prompt_template = Template(template_text)
+        prompt = prompt_template.substitute(
+            difficulty=question_specifications.diff,
+            language=question_specifications.language,
+            user_specifications=question_specifications.UserPrompt.strip(),
+        )
         return await callLLM(
-            prompt,
-            question_specifications.model,
-            QuestionAPIResponse,
+            prompt=prompt,
+            model=question_specifications.model,
+            schema=QuestionAPIResponse,
         )
 
     except FileNotFoundError:
@@ -81,30 +113,32 @@ async def newquestion(
             detail="Failed to generate a question",
         )
 
+
 @llmRoute.post("/checkAnswer", response_model=AnswerAPIResponse)
 async def CheckAnswer(
     Answer: AnswerAPIRequest,
     current_user: int = Depends(verifyToken)
 ):
     try:
-            AnswerPromptfile = Path(__file__).parent / "prompts" / "CheckAnswer.txt"
-            prompt = AnswerPromptfile.read_text(encoding="utf-8")
-    
-            prompt += f"""
+        AnswerPromptfile = Path(__file__).parent / \
+            "prompts" / "CheckAnswer.txt"
+        prompt = AnswerPromptfile.read_text(encoding="utf-8")
+
+        prompt += f"""
                         question: \n{Answer.Question}
                         User's Answer: \n{Answer.Answer}
                         """
-    
-            return await callLLM(
-                prompt,
-                Answer.model,
-                AnswerAPIResponse
-            )
+
+        return await callLLM(
+            prompt,
+            Answer.model,
+            AnswerAPIResponse
+        )
     except FileNotFoundError:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Question prompt template is missing",
-            )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Question prompt template is missing",
+        )
     except AuthenticationError:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
@@ -127,6 +161,6 @@ async def CheckAnswer(
         )
     except Exception:
         raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Failed to check answer",
-                )
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to check answer",
+        )

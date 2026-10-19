@@ -11,12 +11,7 @@ loginRoute = APIRouter()
 
 @loginRoute.get("/")
 async def root():
-    return {"message": "Welcome to FastAPI Authentication Demo"}
-
-
-@loginRoute.get("/protected")
-async def protected_route(current_user: str = Depends(verifyToken)):
-    return {"message": f"Hello {current_user}, this is a protected route!"}
+    return {"message": "Welcome to Syntara"}
 
 
 @loginRoute.post("/register", response_model=TokenResponse)
@@ -46,6 +41,8 @@ async def login(
     formdata: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ):
+    print(formdata.username)
+    print(formdata.password)
     user = getUsername(db, formdata.username)
     if not user or not verify_password(user.hashed_password, formdata.password):
         raise HTTPException(

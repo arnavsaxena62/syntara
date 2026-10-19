@@ -1,6 +1,16 @@
-Generate one clear, accurate question for the user.
-Rules:
-- Match the requested difficulty level.
-- Return only the question, with no explanation, answer, markdown, or extra text.
-- Make the question specific and unambiguous.
-specifications: 
+Generate exactly one question using the specifications below.
+
+The generated question must:
+- Match the requested difficulty.
+- Be specific and unambiguous.
+- Be based only on the user specifications.
+- Contain no answer or solution.
+- Contain no hints.
+- Contain no example output.
+- Contain no SQL schema, table definition, sample data, or code unless the user explicitly requests those items.
+- Contain no introduction such as "Here is a practice question".
+
+Specifications:
+difficulty: $difficulty
+language: $language
+user specifications: $user_specifications
