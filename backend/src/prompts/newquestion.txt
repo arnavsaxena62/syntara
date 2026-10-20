@@ -6,11 +6,12 @@ The generated question must:
 - Be based only on the user specifications.
 - Contain no answer or solution.
 - Contain no hints.
-- Contain no example output.
+- Contain 2 example output.
 - Contain no sample data, or code unless the user explicitly requests those items.
 - Contain no introduction such as "Here is a practice question".
+- everything should be inside the question json object
 
 Specifications:
-difficulty: $difficulty
+difficulty: $difficulty/3
 language: $language
 user specifications: $user_specifications

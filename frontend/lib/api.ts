@@ -16,7 +16,7 @@ export async function login(username: string, password: string) {
   return { ...data, ok: res.ok }
 }
 
-export async function newQuestion(userId: number, prompt: string, diff: number = 5, language: string = "mysql", model: string = "openrouter/free") {
+export async function newQuestion(userId: number, prompt: string, diff: number = 1, language: string = "python", model: string = "openrouter/free") {
   const token = getToken()
   const res = await fetch(`${API_BASE}/newquestion`, {
     method: "POST",

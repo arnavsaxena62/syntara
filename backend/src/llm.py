@@ -17,11 +17,7 @@ T = TypeVar("T", bound=BaseModel)
 JSON_SYSTEM_PROMPT = """
 You are a JSON-only API.
 You must return exactly one valid JSON object and nothing else.
-Required format:
-{"Question":"one generated question"}
 Rules:
-- The JSON object must contain exactly one key: "Question".
-- "Question" must be a string.
 - Do not output markdown.
 - Do not output any preamble or postamble
 - Do not use code fences.

@@ -23,7 +23,7 @@ class UserResponse(BaseModel):
         from_attributes = True  
         
 class QuestionAPIResponse(BaseModel):
-    Question: str
+    question: str
 
 class QuestionAPIRequest(BaseModel):
     Userid: int
@@ -33,7 +33,7 @@ class QuestionAPIRequest(BaseModel):
     model: str
 
 class AnswerAPIResponse(BaseModel):
-    Score: int
+    score: int
     remarks: str
     correct: bool
 
