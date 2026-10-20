@@ -4,10 +4,12 @@ from sqlalchemy.orm import Session
 from typing import cast
 
 from src.schemas import *
-from src.auth import verify_password, createAccessToken, verifyToken
+from src.auth import verify_password, createAccessToken
+from src.config import AUTH_PROVIDER
 from src.db import getUsername, get_db, createUser
 
 loginRoute = APIRouter()
+
 
 @loginRoute.get("/")
 async def root():
@@ -16,18 +18,16 @@ async def root():
 
 @loginRoute.post("/register", response_model=TokenResponse)
 async def register(formdata: UserCreate, db: Session = Depends(get_db)):
-    print(formdata.password)
-    print(len(formdata.password.encode("utf-8")))
-    newuser = createUser(
-        db,
-        formdata.username,
-        formdata.email,
-        formdata.password
-    )
+    if AUTH_PROVIDER != "legacy":
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail="Local registration is disabled, sign up through Clerk",
+        )
+    newuser = createUser(db, formdata.username, formdata.email, formdata.password)
     if not newuser:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username or email already registered"
+            detail="Username or email already registered",
         )
     return TokenResponse(
         access_token=createAccessToken(cast(int, newuser.id)),
@@ -41,12 +41,14 @@ async def login(
     formdata: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ):
-    print(formdata.username)
-    print(formdata.password)
+    if AUTH_PROVIDER != "legacy":
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail="Local login is disabled, sign in through Clerk",
+        )
     user = getUsername(db, formdata.username)
     if not user or not verify_password(user.hashed_password, formdata.password):
-        raise HTTPException(
-            status_code=401, detail="Incorrect username or password")
+        raise HTTPException(status_code=401, detail="Incorrect username or password")
     return TokenResponse(
         access_token=createAccessToken(cast(int, user.id)),
         token_type="bearer",

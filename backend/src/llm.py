@@ -8,8 +8,13 @@ from pathlib import Path
 from litellm import _turn_on_debug
 from string import Template
 
-from src.schemas import QuestionAPIResponse, QuestionAPIRequest, AnswerAPIResponse, AnswerAPIRequest
-from src.auth import verifyToken
+from src.schemas import (
+    QuestionAPIResponse,
+    QuestionAPIRequest,
+    AnswerAPIResponse,
+    AnswerAPIRequest,
+)
+from src.deps import currentUser
 
 llmRoute = APIRouter()
 
@@ -54,6 +59,7 @@ Any output that is not valid JSON is invalid.
 
 #     return schema.model_validate_json(content)
 
+
 async def callLLM(prompt: str, model: str, schema: type[T]) -> T:
     try:
         response = cast(
@@ -84,15 +90,14 @@ async def callLLM(prompt: str, model: str, schema: type[T]) -> T:
         print(f"LLM ERROR: {exc!r}")
         raise
 
+
 @llmRoute.post("/newquestion", response_model=QuestionAPIResponse)
 async def newquestion(
     question_specifications: QuestionAPIRequest,
-    current_user: int = Depends(verifyToken),
+    current_user: int = Depends(currentUser),
 ) -> QuestionAPIResponse:
     try:
-        question_prompt_file = (
-            Path(__file__).parent / "prompts" / "newquestion.txt"
-        )
+        question_prompt_file = Path(__file__).parent / "prompts" / "newquestion.txt"
         template_text = question_prompt_file.read_text(encoding="utf-8")
         prompt_template = Template(template_text)
         prompt = prompt_template.substitute(
@@ -140,12 +145,10 @@ async def newquestion(
 
 @llmRoute.post("/checkAnswer", response_model=AnswerAPIResponse)
 async def CheckAnswer(
-    Answer: AnswerAPIRequest,
-    current_user: int = Depends(verifyToken)
+    Answer: AnswerAPIRequest, current_user: int = Depends(currentUser)
 ):
     try:
-        AnswerPromptfile = Path(__file__).parent / \
-            "prompts" / "CheckAnswer.txt"
+        AnswerPromptfile = Path(__file__).parent / "prompts" / "CheckAnswer.txt"
         prompt = AnswerPromptfile.read_text(encoding="utf-8")
 
         prompt += f"""
@@ -153,11 +156,7 @@ async def CheckAnswer(
                         User's Answer: \n{Answer.Answer}
                         """
 
-        return await callLLM(
-            prompt,
-            Answer.model,
-            AnswerAPIResponse
-        )
+        return await callLLM(prompt, Answer.model, AnswerAPIResponse)
     except FileNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
