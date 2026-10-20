@@ -3,13 +3,14 @@
 **AI-powered coding practice platform.** Describe a topic, get a generated interview-style question, write your solution in an in-browser Monaco editor, and get an AI score with feedback.
 
 - **Frontend** — Next.js 16 (App Router) + React 19 + Tailwind v4 + shadcn/ui + Monaco Editor
-- **Backend** — FastAPI + SQLAlchemy + SQLite + JWT auth, with an LLM gateway (LiteLLM → OpenRouter)
+- **Backend** — FastAPI + SQLAlchemy + SQLite + Clerk auth, with an LLM gateway (LiteLLM → OpenRouter)
 
 ---
 
 ## Features
 
-- Register/login with bcrypt-hashed passwords and stateless JWT bearer tokens (30-min expiry)
+- Sign in and sign up with Clerk, including social providers and account management
+- Server-side route protection — `/chatbot` requires a session before it renders
 - Prompt-driven question generation — topic, difficulty, and language in, one clean question out
 - In-browser Monaco editor with a three-pane layout (question / solution / results)
 - AI grading that returns a `0–100` score, a `correct` verdict, and written remarks
@@ -28,14 +29,16 @@
 | SQLAlchemy | `>= 2.1.5` | Tailwind CSS v4 | `4.3.3` |
 | SQLite | file `backend/db.db` | shadcn/ui (Base UI) | `4.22.1` |
 | Pydantic v2 | `>= 2.14.1` | Monaco Editor | `0.57.0` |
-| python-jose (HS256) + passlib/bcrypt | `>= 3.5.0` / `4.0.1` | ESLint 9 | `9.39.5` |
+| PyJWT (RS256) + passlib/bcrypt | `>= 2.10.1` / `4.0.1` | ESLint 9 | `9.39.5` |
 | LiteLLM → OpenRouter | `>= 1.106.0` | npm | lockfile committed |
+
+Authentication is handled by [Clerk](https://clerk.com). The frontend uses `@clerk/nextjs` v7, and the backend verifies Clerk session tokens (RS256) against the instance JWKS.
 
 ---
 
 ## Quick Start
 
-**Prerequisites:** [uv](https://docs.astral.sh/uv/), Python 3.11, Node 20+, and a free [OpenRouter](https://openrouter.ai/) API key.
+**Prerequisites:** [uv](https://docs.astral.sh/uv/), Python 3.11, Node 20.9+, and a free [OpenRouter](https://openrouter.ai/) API key.
 
 ### Backend
 
@@ -45,10 +48,16 @@ uv sync
 cat > src/.env <<'EOF'
 OPENROUTER_API_KEY=sk-or-v1-your-key-here
 EOF
+cat > .env <<'EOF'
+CLERK_SECRET_KEY=sk_test_...
+CLERK_FRONTEND_API=your-instance.clerk.accounts.dev
+CLERK_AUTHORIZED_PARTIES=http://localhost:3000,http://localhost:3001
+AUTH_PROVIDER=clerk
+EOF
 uv run uvicorn src.main:app --reload --port 8000
 ```
 
-API on **http://localhost:8000** — Swagger at `/docs`. Tables are created automatically on startup; no migration step needed.
+API on **http://localhost:8000** — Swagger at `/docs`. Tables are created automatically on startup; the `users.clerk_user_id` column is added by an idempotent migration if it is missing.
 
 > Run uvicorn from `backend/`. The SQLite URL is relative (`sqlite:///./db.db`) and LiteLLM resolves `.env` from the working directory.
 
@@ -57,26 +66,58 @@ API on **http://localhost:8000** — Swagger at `/docs`. Tables are created auto
 ```bash
 cd frontend
 npm install
+npx clerk@latest init          # or copy the keys from the Clerk dashboard
 npm run dev
 ```
 
-Open **http://localhost:3000**. The root route checks `localStorage` for a token and redirects to `/chatbot` or `/login`.
+Open **http://localhost:3000**. The root route reads the Clerk session and redirects to `/chatbot` or `/sign-in`.
+
+> The Clerk keys live in `frontend/.env.local` (`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`).
 
 ---
 
 ## Environment Variables
 
-**Backend** (`backend/src/.env`)
+**Backend** (`backend/.env` — gitignored)
 
 | Variable | Required | Notes |
 |---|---|---|
-| `OPENROUTER_API_KEY` | **Yes** | Read automatically by LiteLLM for `openrouter/...` models |
-| `SECRET_KEY` | Recommended | JWT signing secret — currently hardcoded in `src/auth.py` |
-| `DATABASE_URL` | Optional | Currently hardcoded to `sqlite:///./db.db` |
+| `OPENROUTER_API_KEY` | **Yes** | Read automatically by LiteLLM for `openrouter/...` models. A lowercase `openrouter` key is also accepted. |
+| `CLERK_SECRET_KEY` | **Yes** | Clerk instance secret key, used to fetch JWKS and user records |
+| `CLERK_FRONTEND_API` | Recommended | Instance host, e.g. `your-instance.clerk.accounts.dev`. Used to build the JWKS URL and to check the token issuer |
+| `CLERK_AUTHORIZED_PARTIES` | Recommended | Comma-separated app origins allowed to present a token, e.g. `http://localhost:3000`. Matches the token's `azp` claim |
+| `CLERK_JWKS_URL` | Optional | Overrides the JWKS endpoint |
+| `CLERK_AUDIENCE` | Optional | Verify the token `aud` claim when the instance uses a custom session token template |
+| `AUTH_PROVIDER` | Optional | `clerk` (default) or `legacy` to re-enable the old password endpoints |
+| `API_ALLOWED_ORIGINS` | Optional | Comma-separated CORS allowlist |
 
-> The committed `.env` names the key `openrouter` (lowercase). LiteLLM expects `OPENROUTER_API_KEY`, so it's ignored and the LLM routes fail with a 502.
+**Frontend** (`frontend/.env.local` — gitignored)
 
-**Frontend** — the API base URL is currently hardcoded as `http://100.66.224.73:8000` in `lib/api.ts:1` and duplicated in `components/login-form.tsx:35` and `components/register-form.tsx:22`. `NEXT_PUBLIC_API_BASE` is the natural fix but isn't wired up yet.
+| Variable | Notes |
+|---|---|
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key |
+| `CLERK_SECRET_KEY` | Clerk secret key |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_URL` / `_SIGN_UP_URL` | Where the auth controls link to (default `/sign-in`, `/sign-up`) |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` | Where a signed-in user lands (default `/`) |
+| `NEXT_PUBLIC_API_BASE` | Base URL of the FastAPI backend (default `http://100.66.224.73:8000`) |
+
+---
+
+## Authentication
+
+Clerk owns sign-in, sign-up, sessions, and account management. The frontend keeps the session in an httpOnly cookie managed by Clerk and sends the session token to the backend as `Authorization: Bearer <token>`.
+
+The backend resolves the caller to a local `users` row:
+
+1. Look up `users.clerk_user_id`.
+2. Otherwise match an existing account by email and attach the Clerk id — so existing question history and scores stay with the user.
+3. Otherwise create a row with a random unusable password hash.
+
+The acting user always comes from the token. The `Userid` field in the request body was removed, since it let any authenticated caller act as any user.
+
+### Rolling back
+
+Set `AUTH_PROVIDER=legacy` in `backend/.env` to re-enable the old `/login` and `/register` password endpoints. The Clerk routes stay disabled in that mode.
 
 ---
 
@@ -85,17 +126,21 @@ Open **http://localhost:3000**. The root route checks `localStorage` for a token
 ```
 backend/src/
   main.py        FastAPI app, CORS, lifespan (create_all)
-  login.py       /register, /login
+  config.py      env loading, AUTH_PROVIDER, CORS allowlist
+  clerk.py       session token verification (JWKS), Clerk user lookup
+  deps.py        currentUser dependency (Clerk or legacy)
+  login.py       /register, /login (legacy mode only)
   llm.py         /newquestion, /checkAnswer, callLLM
-  auth.py        JWT encode/verify, bcrypt hashing
-  db.py          engine, User model, CRUD
+  auth.py        legacy JWT encode/verify, bcrypt hashing
+  db.py          engine, User model, CRUD, clerk_user_id migration
   schemas.py     Pydantic request/response models
   prompts/       newquestion.txt, CheckAnswer.txt
 
 frontend/
-  app/           layout, page (auth redirect), login/, register/, chatbot/
-  components/    login-form, register-form, ui/ (shadcn primitives)
-  lib/           api.ts (client + token), utils.ts
+  app/           layout, page (auth redirect), sign-in/, sign-up/, chatbot/
+  components/    chatbot-view, ui/ (shadcn primitives)
+  lib/           api.ts (backend calls), utils.ts
+  proxy.ts       clerkMiddleware
 ```
 
 ---
@@ -114,20 +159,20 @@ npm run build      # production build
 npm run start      # serve the build
 npm run lint       # ESLint
 npx tsc --noEmit   # type check
+
+# Clerk
+npx clerk@latest doctor
 ```
 
 ---
 
 ## Roadmap
 
-- [ ] Move `SECRET_KEY`/`DATABASE_URL` to env vars; rotate the committed secret and API keys
-- [ ] Remove plaintext password logging
-- [ ] Wire up `NEXT_PUBLIC_API_BASE`; delete the hardcoded URLs
-- [ ] Fix the `Score`/`score` key mismatch and honour the request's `model`
-- [ ] Add a client-side guard for `/chatbot`; decode the real user id from the JWT
+- [ ] Move `DATABASE_URL` to an env var; add Alembic migrations
 - [ ] Add `pytest` + `httpx` coverage for auth and LLM routes (LLM mocked)
-- [ ] Add Alembic migrations, refresh tokens, rate limiting, `is_active` checks
+- [ ] Rate limiting and refresh token handling
 - [ ] Persist question history and attempt scores per user
+- [ ] Enable Clerk social providers and organizations (needs a claimed application)
 
 ---
 
@@ -141,4 +186,4 @@ No license file yet — the code is proprietary to the project owner. Add a `LIC
 
 ## Acknowledgements
 
-FastAPI · LiteLLM · OpenRouter · Next.js · shadcn/ui · Monaco Editor · Tailwind CSS · uv
+FastAPI · LiteLLM · OpenRouter · Next.js · Clerk · shadcn/ui · Monaco Editor · Tailwind CSS · uv
