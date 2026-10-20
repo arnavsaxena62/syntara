@@ -1,0 +1,331 @@
+"use client"
+
+import { useState } from "react"
+import dynamic from "next/dynamic"
+import { Show, UserButton, useAuth } from "@clerk/nextjs"
+import { Button } from "@/components/ui/button"
+import { newQuestion, checkAnswer } from "@/lib/api"
+
+const MonacoEditor = dynamic(
+  () => import("@monaco-editor/react").then((mod) => mod.Editor),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full items-center justify-center bg-[#1e1e1e] text-sm text-zinc-400">
+        Loading editor...
+      </div>
+    ),
+  }
+)
+
+type CheckResult = {
+  score: number
+  correct: boolean
+  remarks: string
+}
+
+export function ChatbotView() {
+  const [step, setStep] = useState<"prompt" | "question" | "result">("prompt")
+  const [prompt, setPrompt] = useState("")
+  const [difficulty, setDifficulty] = useState(1)
+  const [language, setLanguage] = useState("python")
+  const [question, setQuestion] = useState("")
+  const [answer, setAnswer] = useState("")
+  const [result, setResult] = useState<CheckResult | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const { getToken } = useAuth()
+
+  const handleGenerate = async () => {
+    if (!prompt.trim()) {
+      setError("Describe the type of problem you want to practice first.")
+      return
+    }
+
+    setLoading(true)
+    setError("")
+
+    try {
+      const token = await getToken()
+      if (!token) {
+        setError("Your session expired. Sign in again to continue.")
+        return
+      }
+
+      const data = await newQuestion(token, prompt, difficulty, language)
+
+      setQuestion(data.question)
+      setStep("question")
+    } catch {
+      setError("Could not generate a question. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+
+  const getMonacoLanguage = (language: string) => {
+    const languageMap: Record<string, string> = {
+      python: "python",
+      javascript: "javascript",
+      typescript: "typescript",
+      java: "java",
+      csharp: "csharp",
+      cpp: "cpp",
+      sql: "sql",
+      mysql: "sql",
+    }
+    return languageMap[language.toLowerCase()] ?? "plaintext"
+  }
+
+
+  const handleCheck = async () => {
+    if (!answer.trim()) {
+      setError("Write an answer before submitting it for review.")
+      return
+    }
+    setLoading(true)
+    setError("")
+    try {
+      const token = await getToken()
+      if (!token) {
+        setError("Your session expired. Sign in again to continue.")
+        return
+      }
+
+      const data = await checkAnswer(token, question, answer)
+      setResult(data)
+      setStep("result")
+    } catch {
+      setError("Could not check your answer. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (step === "prompt") {
+    return (
+      <main className="min-h-screen bg-muted p-6 flex items-center justify-center">
+        <div className="w-full max-w-2xl space-y-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold">Ask a Question</h1>
+              <p className="mt-2 text-muted-foreground">
+                Describe a problem you want to practice and get a coding challenge.
+              </p>
+            </div>
+            <Show when="signed-in">
+              <UserButton />
+            </Show>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="language" className="text-sm font-medium">
+              Language
+            </label>
+
+            <select
+              id="language"
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+            >
+              <option value="python">Python</option>
+              <option value="javascript">JavaScript</option>
+              <option value="typescript">TypeScript</option>
+              <option value="java">Java</option>
+              <option value="csharp">C#</option>
+              <option value="cpp">C++</option>
+              <option value="sql">SQL</option>
+              <option value="mysql">MySQL</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Difficulty</label>
+
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setDifficulty((value) => Math.max(1, value - 1))}
+                disabled={difficulty === 1}
+                aria-label="Decrease difficulty"
+              >
+                −
+              </Button>
+
+              <div className="min-w-32 text-center">
+                <p className="font-semibold">
+                  {difficulty === 1
+                    ? "Easy"
+                    : difficulty === 2
+                      ? "Medium"
+                      : "Hard"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Difficulty {difficulty} of 3
+                </p>
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setDifficulty((value) => Math.min(3, value + 1))}
+                disabled={difficulty === 3}
+                aria-label="Increase difficulty"
+              >
+                +
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="prompt" className="text-sm font-medium">
+              What would you like to practice?
+            </label>
+
+            <textarea
+              id="prompt"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              className="h-40 min-h-40 w-full resize-none rounded-lg border bg-background p-4"
+              placeholder={`Example: Give me a ${difficulty === 1
+                ? "beginner"
+                : difficulty === 2
+                  ? "medium"
+                  : "challenging"
+                } ${language} problem about dictionaries and arrays...`}
+            />
+          </div>
+
+          {error && (
+            <p className="text-sm text-destructive">{error}</p>
+          )}
+
+          <Button
+            onClick={handleGenerate}
+            disabled={loading}
+            className="w-full py-2"
+          >
+            {loading
+              ? "Generating..."
+              : `Generate ${difficulty === 1 ? "Easy" : difficulty === 2 ? "Medium" : "Hard"} Question`}
+          </Button>
+        </div>
+      </main>
+    )
+  }
+
+  return (
+    <div className="flex h-dvh flex-col overflow-hidden bg-muted/30">
+      <header className="flex h-16 shrink-0 items-center justify-between border-b bg-background px-4 md:px-6">
+        <h1 className="text-xl font-bold">Syntara</h1>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm"
+            onClick={() => {
+              setStep("prompt")
+              setAnswer("")
+            }}>
+            New Question
+          </Button>
+          <Show when="signed-in">
+            <UserButton />
+          </Show>
+        </div>
+      </header>
+
+      <main className="grid min-h-0 flex-1 overflow-auto lg:grid-cols-[minmax(280px,0.8fr)_minmax(450px,1.7fr)_minmax(280px,0.8fr)] lg:overflow-hidden">
+        {/* Questions Pane */}
+        <aside className="border-b border-border bg-background lg:overflow-y-auto lg:border-b-0 lg:border-r">
+          <div className="p-5 md:p-6">
+            <h2 className="mb-3 text-sm font-semibold">Questions</h2>
+            <article className="whitespace-pre-wrap text-sm leading-7">
+              {question}
+            </article>
+          </div>
+        </aside>
+
+        {/* Answer Pane - Monaco Editor */}
+        <section className="flex min-h-0 flex-1 flex-col p-4 md:p-6">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-semibold">Your Solution</h2>
+            <span className="rounded bg-primary/10 px-2 py-0.5 text-xs text-primary font-mono">{getMonacoLanguage(language)}</span>
+          </div>
+          <div className="min-h-0 flex-1 overflow-hidden rounded-xl border bg-[#1e1e1e] shadow-sm">
+            <MonacoEditor
+              height="100%"
+              language={getMonacoLanguage(language)}
+              value={answer}
+              onChange={(val) => val && setAnswer(val)}
+              theme="vs-dark"
+              options={{
+                minimap: { enabled: false },
+                fontSize: 14,
+                lineHeight: 22,
+                padding: { top: 16, bottom: 16 },
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+                wordWrap: "on",
+              }}
+            />
+          </div>
+          {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
+        </section>
+
+        {/* Results Pane */}
+        <aside className="border-t border-border bg-background lg:overflow-y-auto lg:border-l lg:border-t-0">
+          <div className="p-5 md:p-6">
+            <h2 className="mb-3 text-sm font-semibold">Results</h2>
+            {step === "question" ? (
+              <div className="rounded-xl border border-dashed p-8 text-center">
+                <p className="text-sm font-medium">Ready when you are</p>
+                <p className="mt-1 text-xs text-muted-foreground">Submit your solution for review.</p>
+                <Button onClick={handleCheck} disabled={loading} className="mt-4 w-full py-2">
+                  {loading ? "Reviewing..." : "Check Answer"}
+                </Button>
+              </div>
+            ) : result ? (
+              <div className="space-y-4">
+                <div
+                  className={`rounded-xl border p-4 ${result.correct
+                    ? "border-emerald-500/30 bg-emerald-500/10"
+                    : "border-destructive/30 bg-destructive/10"
+                    }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold">
+                        {result.correct ? "Correct" : "Needs improvement"}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        Score: {result.score}/100
+                      </span>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    {result.remarks}
+                  </p>
+                </div>
+                <Button
+                  onClick={handleCheck} disabled={loading}
+                  className="w-full"
+                >
+                  Revise Answer
+                </Button>
+                <Button onClick={() => {
+                  setStep("question")
+                  setAnswer("")
+                }} className="w-full">
+                  Try Another
+                </Button>
+              </div>
+            ) : null}
+          </div>
+        </aside>
+      </main>
+    </div>
+  )
+}

@@ -1,18 +1,16 @@
-"use client"
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, type ReactNode } from "react"
+import { redirect } from "next/navigation"
+import { auth } from "@clerk/nextjs/server"
 
 export default function Home() {
-  const router = useRouter()
+  return (
+    <Suspense fallback={null}>
+      <HomeRedirect />
+    </Suspense>
+  )
+}
 
-  useEffect(() => {
-    const token = localStorage.getItem("token")
-    if (token) {
-      router.push("/chatbot")
-    } else {
-      router.push("/login")
-    }
-  }, [router])
-
-  return null
+async function HomeRedirect(): Promise<ReactNode> {
+  const { isAuthenticated } = await auth()
+  redirect(isAuthenticated ? "/chatbot" : "/sign-in")
 }
