@@ -3,10 +3,12 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-BASE_DIR = Path(__file__).resolve().parent
+# config.py lives in backend/src/clerk/, so the backend root is two levels up.
+BACKEND_ROOT = Path(__file__).resolve().parents[2]
+SRC_DIR = BACKEND_ROOT / "src"
 
-load_dotenv(BASE_DIR / ".env")
-load_dotenv(BASE_DIR.parent / ".env")
+load_dotenv(SRC_DIR / ".env")
+load_dotenv(BACKEND_ROOT / ".env")
 
 
 def _csv(name: str) -> list[str]:

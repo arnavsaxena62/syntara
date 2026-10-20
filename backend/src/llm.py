@@ -14,7 +14,7 @@ from src.schemas import (
     AnswerAPIResponse,
     AnswerAPIRequest,
 )
-from src.deps import currentUser
+from src.clerk.deps import currentUser
 
 llmRoute = APIRouter()
 

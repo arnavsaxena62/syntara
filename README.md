@@ -126,15 +126,16 @@ Set `AUTH_PROVIDER=legacy` in `backend/.env` to re-enable the old `/login` and `
 ```
 backend/src/
   main.py        FastAPI app, CORS, lifespan (create_all)
-  config.py      env loading, AUTH_PROVIDER, CORS allowlist
-  clerk.py       session token verification (JWKS), Clerk user lookup
-  deps.py        currentUser dependency (Clerk or legacy)
   login.py       /register, /login (legacy mode only)
   llm.py         /newquestion, /checkAnswer, callLLM
   auth.py        legacy JWT encode/verify, bcrypt hashing
   db.py          engine, User model, CRUD, clerk_user_id migration
   schemas.py     Pydantic request/response models
   prompts/       newquestion.txt, CheckAnswer.txt
+  clerk/
+    config.py    env loading, AUTH_PROVIDER, CORS allowlist
+    tokens.py    session token verification (JWKS), Clerk user lookup
+    deps.py      currentUser dependency (Clerk or legacy)
 
 frontend/
   app/           layout, page (auth redirect), sign-in/, sign-up/, chatbot/
@@ -142,6 +143,8 @@ frontend/
   lib/           api.ts (backend calls), utils.ts
   proxy.ts       clerkMiddleware
 ```
+
+> Imports inside `backend/` are package-absolute (`from src.clerk.tokens import ...`), so uvicorn must be started from the `backend/` directory.
 
 ---
 

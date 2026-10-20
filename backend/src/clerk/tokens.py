@@ -5,7 +5,7 @@ import jwt
 from fastapi import HTTPException, status
 from jwt import PyJWKClient
 
-from src.config import (
+from src.clerk.config import (
     CLERK_API_URL,
     CLERK_AUDIENCE,
     CLERK_AUTHORIZED_PARTIES,

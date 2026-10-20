@@ -5,8 +5,8 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from src.auth import verifyLegacyToken
-from src.clerk import getClerkUser, verifyClerkToken
-from src.config import AUTH_PROVIDER
+from src.clerk.config import AUTH_PROVIDER
+from src.clerk.tokens import getClerkUser, verifyClerkToken
 from src.db import get_db, getOrCreateClerkUser
 
 bearer_scheme = HTTPBearer(auto_error=False)

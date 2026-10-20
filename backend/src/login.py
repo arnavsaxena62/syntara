@@ -5,7 +5,7 @@ from typing import cast
 
 from src.schemas import *
 from src.auth import verify_password, createAccessToken
-from src.config import AUTH_PROVIDER
+from src.clerk.config import AUTH_PROVIDER
 from src.db import getUsername, get_db, createUser
 
 loginRoute = APIRouter()
