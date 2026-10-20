@@ -7,7 +7,7 @@ The generated question must:
 - Contain no answer or solution.
 - Contain no hints.
 - Contain no example output.
-- Contain no SQL schema, table definition, sample data, or code unless the user explicitly requests those items.
+- Contain no sample data, or code unless the user explicitly requests those items.
 - Contain no introduction such as "Here is a practice question".
 
 Specifications:
