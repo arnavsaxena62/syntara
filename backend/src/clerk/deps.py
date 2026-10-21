@@ -8,6 +8,7 @@ from src.auth import verifyLegacyToken
 from src.clerk.config import AUTH_PROVIDER
 from src.clerk.tokens import getClerkUser, verifyClerkToken
 from src.db import get_db, getOrCreateClerkUser
+from src.clerk.ratelimiting import ratelimiter
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -69,7 +70,11 @@ def currentUser(
 
     token = credentials.credentials
 
+    user = 0
+    
     if AUTH_PROVIDER == "legacy":
-        return verifyLegacyToken(token)
+        user = verifyLegacyToken(token)
 
-    return _clerkUserFromToken(token, db)
+    user = _clerkUserFromToken(token, db)
+    ratelimiter(user)
+    return user

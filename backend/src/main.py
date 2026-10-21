@@ -16,7 +16,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Authentication Demo",
+    title="Syntara",
     version="1.0.0",
     lifespan=lifespan,
 )
