@@ -7,6 +7,16 @@ from src.db import Base, engine, ensureClerkColumn
 from src.login import loginRoute
 from src.llm import llmRoute
 
+import logging
+import os
+
+logger = logging.getLogger(__name__)
+
+logger.warning(
+    "CLERK_FRONTEND_API_URL from Render: %r",
+    os.getenv("CLERK_FRONTEND_API_URL"),
+)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -28,6 +38,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 
 app.include_router(loginRoute)
