@@ -35,6 +35,7 @@ export function ChatbotView() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const { getToken } = useAuth()
+  const [model, setModel] = useState("aion-labs/aion-rp-llama-3.1-8b")
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -52,7 +53,7 @@ export function ChatbotView() {
         return
       }
 
-      const data = await newQuestion(token, prompt, difficulty, language)
+      const data = await newQuestion(token, prompt, difficulty, language, model)
 
       setQuestion(data.question)
       setStep("question")
@@ -141,45 +142,64 @@ export function ChatbotView() {
             </select>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Difficulty</label>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
 
-            <div className="flex items-center gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => setDifficulty((value) => Math.max(1, value - 1))}
-                disabled={difficulty === 1}
-                aria-label="Decrease difficulty"
-              >
-                −
-              </Button>
+            <div className="space-y-2">
 
-              <div className="min-w-32 text-center">
-                <p className="font-semibold">
-                  {difficulty === 1
-                    ? "Easy"
-                    : difficulty === 2
-                      ? "Medium"
-                      : "Hard"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Difficulty {difficulty} of 3
-                </p>
+              <label className="text-sm font-medium">Difficulty</label>
+
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setDifficulty((value) => Math.max(1, value - 1))}
+                  disabled={difficulty === 1}
+                  aria-label="Decrease difficulty"
+                >
+                  −
+                </Button>
+
+                <div className="min-w-32 text-center">
+                  <p className="font-semibold">
+                    {difficulty === 1
+                      ? "Easy"
+                      : difficulty === 2
+                        ? "Medium"
+                        : "Hard"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Difficulty {difficulty} of 3
+                  </p>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setDifficulty((value) => Math.min(3, value + 1))}
+                  disabled={difficulty === 3}
+                  aria-label="Increase difficulty"
+                >
+                  +
+                </Button>
               </div>
 
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => setDifficulty((value) => Math.min(3, value + 1))}
-                disabled={difficulty === 3}
-                aria-label="Increase difficulty"
-              >
-                +
-              </Button>
             </div>
+
+            <div className="w-56 space-y-2">
+              <label htmlFor="model" className="text-sm font-medium">
+                Model
+              </label>
+              <input
+                id="model"
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                placeholder="aion-labs/aion-rp-llama-3.1-8b"
+                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+              />
+            </div>
+
           </div>
 
           <div className="space-y-2">
