@@ -65,7 +65,7 @@ async def callLLM(prompt: str, model: str, schema: type[T]) -> T:
         response = cast(
             ModelResponse,
             await acompletion(
-                model="openrouter/minimax/minimax-m3.1-flash:free",
+                model="openrouter/xingchen-agi/xing4.0-29b-a4b:free",
                 api_key="",
                 messages=[
                     {

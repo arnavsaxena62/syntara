@@ -77,4 +77,4 @@ def currentUser(
 
     user = _clerkUserFromToken(token, db)
     ratelimiter(user)
-    return user
+    return user 
