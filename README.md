@@ -171,11 +171,12 @@ npx clerk@latest doctor
 
 ## Roadmap
 
-- [ ] Move `DATABASE_URL` to an env var; add Alembic migrations
-- [ ] Add `pytest` + `httpx` coverage for auth and LLM routes (LLM mocked)
-- [ ] Rate limiting and refresh token handling
+- [x] Rate limiting and refresh token handling
+- [ ] Interview type questions
+- [ ] file upload for example questions
 - [ ] Persist question history and attempt scores per user
 - [ ] Enable Clerk social providers and organizations (needs a claimed application)
+- [ ] dark mode
 
 ---
 
