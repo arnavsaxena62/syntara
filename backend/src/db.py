@@ -25,24 +25,36 @@ if not turso_database_url:
     raise RuntimeError("TURSO_DATABASE_URL is not set.")
 if not turso_auth_token:
     raise RuntimeError("TURSO_AUTH_TOKEN is not set.")
-turso_host = turso_database_url.removeprefix("libsql://")
+
+turso_host = (
+    turso_database_url
+    .removeprefix("libsql://")
+    .removeprefix("https://")
+)
+
 DATABASE_URL = URL.create(
     drivername="sqlite+libsql",
     host=turso_host,
     query={
-        "authToken": turso_auth_token,
+        "secure": "true",
     },
 )
+
 engine = create_engine(
     DATABASE_URL,
-    pool_pre_ping=True,
+    connect_args={
+        "auth_token": turso_auth_token,
+    },
 )
+
 SessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
     bind=engine,
 )
 Base = declarative_base()
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -72,7 +84,8 @@ def ensureClerkColumn():
         return
 
     with engine.begin() as connection:
-        connection.execute(text("ALTER TABLE users ADD COLUMN clerk_user_id VARCHAR"))
+        connection.execute(
+            text("ALTER TABLE users ADD COLUMN clerk_user_id VARCHAR"))
     with engine.begin() as connection:
         connection.execute(
             text(
