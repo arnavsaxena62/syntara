@@ -36,9 +36,16 @@ def verifyClerkToken(token: str) -> Dict[str, Any]:
     """Verify a Clerk session token and return its claims."""
     try:
         signing_key = _getJwksClient().get_signing_key_from_jwt(token)
+
+
     except HTTPException:
         raise
     except Exception as exc:
+        print(
+            "Clerk signing-key lookup failed: %s: %s",
+            type(exc).__name__,
+            exc,
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not verify this token",
