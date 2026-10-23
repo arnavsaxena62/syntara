@@ -33,7 +33,9 @@ API_ALLOWED_ORIGINS = _csv("API_ALLOWED_ORIGINS") or [
     "http://192.168.1.17:3001",
     "http://localhost:3000",
     "http://localhost:3001",
-    "https://syntara-bice.vercel.app/"
+    "https://syntara-bice.vercel.app/",
+    "https://syntara-bice.vercel.app",
+    
 ]
 
 
