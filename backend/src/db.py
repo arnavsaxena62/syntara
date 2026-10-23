@@ -13,18 +13,36 @@ from sqlalchemy import (
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from sqlalchemy.engine import URL
+
+import os
 
 from src.auth import hashPassword
 
-SQLITE_DATABASE_URL = "sqlite:///./db.db"
-
-engine = create_engine(SQLITE_DATABASE_URL, connect_args={"check_same_thread": False})
-
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
+turso_database_url = os.environ.get("TURSO_DATABASE_URL")
+turso_auth_token = os.environ.get("TURSO_AUTH_TOKEN")
+if not turso_database_url:
+    raise RuntimeError("TURSO_DATABASE_URL is not set.")
+if not turso_auth_token:
+    raise RuntimeError("TURSO_AUTH_TOKEN is not set.")
+turso_host = turso_database_url.removeprefix("libsql://")
+DATABASE_URL = URL.create(
+    drivername="sqlite+libsql",
+    host=turso_host,
+    query={
+        "authToken": turso_auth_token,
+    },
+)
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+)
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
+)
 Base = declarative_base()
-
-
 class User(Base):
     __tablename__ = "users"
 
