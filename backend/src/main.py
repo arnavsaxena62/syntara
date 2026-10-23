@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 logger.warning(
     "CLERK_FRONTEND_API_URL from Render: %r",
-    os.getenv("CLERK_FRONTEND_API_URL"),
+    os.getenv("CLERK_FRONTEND_API"),
 )
 
 
