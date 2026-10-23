@@ -35,7 +35,7 @@ export function ChatbotView() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const { getToken } = useAuth()
-  const [model, setModel] = useState("aion-labs/aion-rp-llama-3.1-8b")
+  const [model, setModel] = useState("recursive/flint-v1.0:free")
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -195,7 +195,7 @@ export function ChatbotView() {
                 id="model"
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
-                placeholder="aion-labs/aion-rp-llama-3.1-8b"
+                placeholder="recursive/flint-v1.0:free"
                 className="h-10 w-full rounded-md border bg-background px-3 text-sm"
               />
             </div>

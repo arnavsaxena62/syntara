@@ -1,4 +1,4 @@
-Generate exactly one question using the specifications below.
+Generate exactly one question using the specifications below. the question's answer must be a code snippet
 
 The generated question must:
 - Match the requested difficulty.

@@ -25,7 +25,7 @@ export async function checkAnswer(
   token: string,
   question: string,
   answer: string,
-  model: string = "aion-labs/aion-rp-llama-3.1-8b"
+  model: string = "recursive/flint-v1.0:free"
 ) {
   const res = await fetch(`${API_BASE}/checkAnswer`, {
     method: "POST",
