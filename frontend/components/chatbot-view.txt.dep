@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
-import dynamic from "next/dynamic"
-import { Show, UserButton, useAuth } from "@clerk/nextjs"
 import { Button } from "@/components/ui/button"
-import { newQuestion, checkAnswer } from "@/lib/api"
+import { checkAnswer, newQuestion } from "@/lib/api"
+import { Show, UserButton, useAuth } from "@clerk/nextjs"
+import dynamic from "next/dynamic"
+import { useState } from "react"
 
 const MonacoEditor = dynamic(
   () => import("@monaco-editor/react").then((mod) => mod.Editor),

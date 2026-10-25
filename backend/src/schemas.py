@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr
-
+from fastapi import UploadFile, File, Form, Depends
+from typing import Annotated
 
 class LoginRequest(BaseModel):
     username: str
@@ -37,6 +38,26 @@ class QuestionAPIRequest(BaseModel):
     UserPrompt: str
     language: str
     model: str
+
+class QuestionAPIRequestExamples(BaseModel):
+    diff: int
+    UserPrompt: str
+    language: str
+    model: str
+    @classmethod
+    def as_form(
+        cls,
+        diff: Annotated[int, Form(...)],
+        UserPrompt: Annotated[str, Form(...)],
+        language: Annotated[str, Form(...)],
+        model: Annotated[str, Form(...)],
+    ):
+        return cls(
+            diff=diff,
+            UserPrompt=UserPrompt,
+            language=language,
+            model=model,
+        )
 
 
 class AnswerAPIResponse(BaseModel):

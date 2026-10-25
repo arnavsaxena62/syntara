@@ -1,20 +1,15 @@
 from litellm.exceptions import APIConnectionError, AuthenticationError, BadRequestError
-from fastapi import APIRouter, Depends, HTTPException, status
-from typing import TypeVar, cast
-from typing import cast
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
+from typing import TypeVar, cast, List, Annotated
 from litellm import acompletion, ModelResponse
 from pydantic import BaseModel
 from pathlib import Path
 from litellm import _turn_on_debug
 from string import Template
 
-from src.schemas import (
-    QuestionAPIResponse,
-    QuestionAPIRequest,
-    AnswerAPIResponse,
-    AnswerAPIRequest,
-)
+from src.schemas import *
 from src.clerk.deps import currentUser
+from src.pdf import get_pdf_text
 
 llmRoute = APIRouter()
 
@@ -97,7 +92,8 @@ async def newquestion(
     current_user: int = Depends(currentUser),
 ) -> QuestionAPIResponse:
     try:
-        question_prompt_file = Path(__file__).parent / "prompts" / "newquestion.txt"
+        question_prompt_file = Path(
+            __file__).parent / "prompts" / "newquestion.txt"
         template_text = question_prompt_file.read_text(encoding="utf-8")
         prompt_template = Template(template_text)
         prompt = prompt_template.substitute(
@@ -148,7 +144,8 @@ async def CheckAnswer(
     Answer: AnswerAPIRequest, current_user: int = Depends(currentUser)
 ):
     try:
-        AnswerPromptfile = Path(__file__).parent / "prompts" / "CheckAnswer.txt"
+        AnswerPromptfile = Path(__file__).parent / \
+            "prompts" / "CheckAnswer.txt"
         prompt = AnswerPromptfile.read_text(encoding="utf-8")
 
         prompt += f"""
@@ -187,3 +184,46 @@ async def CheckAnswer(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to check answer",
         )
+
+
+@llmRoute.post("/newquestionexample", response_model=QuestionAPIResponse)
+async def newquestionexample(
+        question_specifications: Annotated[QuestionAPIRequestExamples, Depends(QuestionAPIRequestExamples.as_form)],
+        files : List[UploadFile] = File(...),
+        current_user: int = Depends(currentUser)
+    ) -> QuestionAPIResponse:
+    
+    extracted_files: list[str] = []
+    for file in files:
+        if file.content_type != "application/pdf":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"'{file.filename}' is not a PDF.",
+            )
+        extracted_text = await get_pdf_text(file)
+        extracted_files.append(
+            f"--- File: {file.filename} ---\n{extracted_text}"
+        )
+    combined_text = "\n\n".join(extracted_files)
+    
+    question_prompt_file = Path(
+        __file__).parent / "prompts" / "newquestion.txt"
+    template_text = question_prompt_file.read_text(encoding="utf-8")
+    prompt_template = Template(template_text)
+    
+    userspecifications = question_specifications.UserPrompt.strip()
+    if len(userspecifications) < 3:
+        userspecifications = "From the provided examples, randomly select exactly one example that matches the requested language and difficulty. Use only that selected example as a style and scope reference. Generate one original question with the same general type and complexity. Do not copy, quote, reveal, or closely paraphrase the selected example. Do not use or combine any other examples."
+    
+    prompt = prompt_template.substitute(
+        difficulty=question_specifications.diff,
+        language=question_specifications.language,
+        user_specifications=userspecifications,
+        examples=combined_text
+    )
+    
+    return await callLLM(
+                prompt=prompt,
+                model=question_specifications.model,
+                schema=QuestionAPIResponse,)
+

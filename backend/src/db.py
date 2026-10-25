@@ -2,6 +2,7 @@ import secrets
 
 from sqlalchemy import (
     create_engine,
+    Engine,
     Column,
     Integer,
     String,
@@ -14,38 +15,44 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy.engine import URL
-
+from pathlib import Path
 import os
 
 from src.auth import hashPassword
 
 turso_database_url = os.environ.get("TURSO_DATABASE_URL")
 turso_auth_token = os.environ.get("TURSO_AUTH_TOKEN")
-if not turso_database_url:
-    raise RuntimeError("TURSO_DATABASE_URL is not set.")
-if not turso_auth_token:
-    raise RuntimeError("TURSO_AUTH_TOKEN is not set.")
+LOCAL_DB_PATH = Path(__file__).resolve().parent.parent / "db.db"
+if turso_database_url:
+    if not turso_auth_token:
+        raise RuntimeError(
+            "TURSO_AUTH_TOKEN must be set when TURSO_DATABASE_URL is configured."
+        )
+    turso_host = (
+        turso_database_url
+        .removeprefix("libsql://")
+        .removeprefix("https://")
+    )
+    DATABASE_URL = URL.create(
+        drivername="sqlite+libsql",
+        host=turso_host,
+        query={
+            "secure": "true",
+        },
+    )
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={
+            "auth_token": turso_auth_token,
+        },
+    )
+else:
+    DATABASE_URL = URL.create(
+        drivername="sqlite",
+        database=str(LOCAL_DB_PATH),
+    )
+    engine = create_engine(DATABASE_URL)
 
-turso_host = (
-    turso_database_url
-    .removeprefix("libsql://")
-    .removeprefix("https://")
-)
-
-DATABASE_URL = URL.create(
-    drivername="sqlite+libsql",
-    host=turso_host,
-    query={
-        "secure": "true",
-    },
-)
-
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={
-        "auth_token": turso_auth_token,
-    },
-)
 
 SessionLocal = sessionmaker(
     autocommit=False,

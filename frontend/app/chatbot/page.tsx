@@ -1,6 +1,6 @@
 import { Suspense } from "react"
 import { auth } from "@clerk/nextjs/server"
-import { ChatbotView } from "@/components/chatbot-view"
+import { ChatbotViewTest } from "@/components/chatbot/components/chatbotView"
 
 export default function ChatbotPage() {
   return (
@@ -12,7 +12,7 @@ export default function ChatbotPage() {
 
 async function ProtectedChatbot() {
   await auth.protect()
-  return <ChatbotView />
+  return <ChatbotViewTest />
 }
 
 function ChatbotFallback() {

@@ -29,6 +29,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-  ],
+, "components/chatbot-view.backup"  ],
   "exclude": ["node_modules"]
 }
