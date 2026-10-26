@@ -3,8 +3,16 @@
 import { useState } from "react"
 import { useAuth } from "@clerk/nextjs"
 
-import { checkAnswer, newQuestion } from "@/lib/api"
+import { checkAnswer, newQuestion, newQuestionExample } from "@/lib/api"
 import type { CheckResult, Step } from "./practice"
+
+export type SelectedFile = {
+  id: string
+  file: File
+  progress: number
+  failed: boolean
+}
+
 
 export function usePracticeSession() {
   const { getToken } = useAuth()
@@ -22,6 +30,44 @@ export function usePracticeSession() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
+  const [files, setFiles] = useState<SelectedFile[]>([])
+
+  const generateQuestionExample = async () => {
+    if (!prompt.trim()) {
+      setError("Describe the type of problem you want to practice first.")
+      return
+    }
+
+    setLoading(true)
+    setError("")
+    setResult(null)
+
+    try {
+      const token = await getToken()
+
+      if (!token) {
+        setError("Your session expired. Sign in again to continue.")
+        return
+      }
+
+      const data = await newQuestionExample(
+        token,
+        prompt,
+        difficulty,
+        language,
+        model,
+        files.map((selectedFile) => selectedFile.file)
+      )
+
+      setQuestion(data.question)
+      setAnswer("")
+      setStep("question")
+    } catch {
+      setError("Could not generate a question. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
   const generateQuestion = async () => {
     if (!prompt.trim()) {
       setError("Describe the type of problem you want to practice first.")
@@ -58,6 +104,22 @@ export function usePracticeSession() {
     }
   }
 
+  const addFiles = (newFiles: FileList) => {
+    const incomingFiles = Array.from(newFiles).map((file) => ({
+      id: crypto.randomUUID(),
+      file,
+      progress: 0,
+      failed: false,
+    }))
+    setFiles((currentFiles) => [...currentFiles, ...incomingFiles])
+  }
+  const removeFile = (id: string) => {
+    setFiles((currentFiles) =>
+      currentFiles.filter((selectedFile) => selectedFile.id !== id)
+    )
+  }
+
+
   const checkCurrentAnswer = async () => {
     if (!answer.trim()) {
       setError("Write an answer before submitting it for review.")
@@ -92,6 +154,7 @@ export function usePracticeSession() {
     setQuestion("")
     setResult(null)
     setError("")
+    setFiles([])
   }
 
   const tryAnother = () => {
@@ -121,6 +184,10 @@ export function usePracticeSession() {
     checkCurrentAnswer,
     resetToPrompt,
     tryAnother,
+    files,
+    addFiles,
+    removeFile,
+    setFiles,
   }
 }
 

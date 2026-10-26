@@ -39,7 +39,7 @@ export function AnswerEditor({
         </span>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-hidden rounded-xl border bg-[#1e1e1e] shadow-sm">
+      <div className="min-h-0 flex-1 overflow-hidden rounded-xl border shadow-sm">
         <MonacoEditor
           height="100%"
           language={monacoLanguage}

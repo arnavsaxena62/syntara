@@ -28,10 +28,21 @@ export function PracticeWorkspace({
     checkCurrentAnswer,
     resetToPrompt,
     tryAnother,
+    prompt,
+    setPrompt,
+    difficulty,
+    setDifficulty,
+    setLanguage,
+    model,
+    setModel,
+    files,
+    addFiles,
+    removeFile,
+    generateQuestion
   } = session
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-muted/30">
+    <div className="flex h-dvh flex-col overflow-hidden bg-background">
       <header className="flex h-16 shrink-0 items-center justify-between border-b bg-background px-4 md:px-6">
         <h1 className="text-xl font-bold">Syntara</h1>
 

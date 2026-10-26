@@ -4,10 +4,12 @@ import { Show, UserButton } from "@clerk/nextjs"
 
 import { Button } from "@/components/ui/button"
 import type { PracticeSession } from "../usePracticeSession"
+import * as FileUpload from "@/components/application/file-upload/file-upload-base"
 
 type PromptPanelProps = {
   session: PracticeSession
 }
+
 
 export function PromptPanel({ session }: PromptPanelProps) {
   const {
@@ -22,6 +24,10 @@ export function PromptPanel({ session }: PromptPanelProps) {
     error,
     loading,
     generateQuestion,
+    files,
+    addFiles,
+    removeFile,
+    setFiles
   } = session
 
   const difficultyLabel =
@@ -33,6 +39,7 @@ export function PromptPanel({ session }: PromptPanelProps) {
       : difficulty === 2
         ? "medium"
         : "challenging"
+
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted p-6">

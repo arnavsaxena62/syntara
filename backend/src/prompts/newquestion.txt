@@ -1,17 +1,33 @@
-Generate exactly one question using the specifications below. the question's answer must be a code snippet
+Generate exactly one programming question as a single valid JSON object.
 
-The generated question must:
-- Match the requested difficulty.
-- Be specific and unambiguous.
-- Be based only on the user specifications.
-- Contain no answer or solution.
-- Contain no hints.
-- Contain 2 example output.
-- Contain no sample data, or code unless the user explicitly requests those items.
-- Contain no introduction such as "Here is a practice question".
-- everything should be inside the question json object
+Inputs:
+- difficulty: $difficulty/3
+- language: $language
+- topic: $user_specifications
 
-Specifications:
-difficulty: $difficulty/3
-language: $language
-user specifications: $user_specifications
+Requirements:
+1. The answer must be a code snippet in `$language`.
+2. Generate a specific, unambiguous implementation task based on `$user_specifications`.
+3. Select a task by combining distinct choices for:
+   - operation type
+   - input/data type
+   - transformation or business rule
+   - realistic context
+   - edge-case requirement appropriate for the requested difficulty
+4. Do not create an arithmetic-only task, including sum, average, count, minimum, maximum, or basic calculator tasks, unless `$user_specifications` explicitly requires arithmetic.
+5. Adapt the requested implementation to `$language`:
+   - use idiomatic syntax and conventions;
+   - use language-supported function, method, class, query, or stored-routine constructs as appropriate;
+   - do not require features unavailable in `$language`.
+6. Match the requested difficulty:
+   - difficulty 1: one clear transformation or rule;
+   - difficulty 2: multiple conditions or meaningful edge cases;
+   - difficulty 3: compound rules, multiple edge cases, or structured input handling.
+7. Do not include a solution, algorithm, hints, implementation steps, or code in the question.
+8. Include exactly two test cases with inputs and expected outputs.
+9. seperate different sections into different blocks of text using a newline
+10. Return only this JSON object, without Markdown or extra text:
+
+{
+  "question": "..."
+}

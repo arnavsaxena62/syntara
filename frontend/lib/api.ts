@@ -21,6 +21,36 @@ export async function newQuestion(
   return data
 }
 
+export async function newQuestionExample(
+  token: string,
+  prompt: string,
+  diff: number = 1,
+  language: string = "python",
+  model: string = "openrouter/free",
+  files: File[]
+) {
+  const formData = new FormData()
+  formData.append("UserPrompt", prompt)
+  formData.append("diff", String(diff))
+  formData.append("language", language)
+  formData.append("model", model)
+  for (const file of files) {
+    formData.append("files", file)
+  }
+  const response = await fetch(`${API_BASE}/newquestionexample`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  })
+  if (!response.ok) {
+    throw new Error("Failed to generate question.")
+  }
+  return response.json()
+
+}
+
 export async function checkAnswer(
   token: string,
   question: string,
