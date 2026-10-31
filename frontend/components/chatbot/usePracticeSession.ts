@@ -137,7 +137,7 @@ export function usePracticeSession() {
         return
       }
 
-      const data = await checkAnswer(token, question, answer)
+      const data = await checkAnswer(token, question, answer, model)
 
       setResult(data)
       setStep("result")
@@ -158,10 +158,12 @@ export function usePracticeSession() {
   }
 
   const tryAnother = () => {
+    setQuestion("Generating")
     setStep("question")
     setAnswer("")
     setResult(null)
     setError("")
+    generateQuestion()
   }
 
   return {

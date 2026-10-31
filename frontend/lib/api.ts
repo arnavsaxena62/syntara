@@ -55,7 +55,7 @@ export async function checkAnswer(
   token: string,
   question: string,
   answer: string,
-  model: string = "recursive/flint-v1.0:free"
+  model: string = "free"
 ) {
   const res = await fetch(`${API_BASE}/checkAnswer`, {
     method: "POST",

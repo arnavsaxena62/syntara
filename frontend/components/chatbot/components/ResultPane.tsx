@@ -14,7 +14,7 @@ export function ResultsPane({
   result,
   loading,
   onCheck,
-  onTryAnother,
+  onTryAnother
 }: ResultsPaneProps) {
   return (
     <aside className="border-t border-border bg-background lg:overflow-y-auto lg:border-l lg:border-t-0">
